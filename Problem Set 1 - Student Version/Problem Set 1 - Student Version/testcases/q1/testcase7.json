@@ -5,7 +5,7 @@
         "[(1,'R'),(1,'U'),(0,'R'),(0,'R')]"
     ],
     "comparison_args": [
-        "202",
+        "102",
         "True",
         "None",
         "'parks/park4.txt'"

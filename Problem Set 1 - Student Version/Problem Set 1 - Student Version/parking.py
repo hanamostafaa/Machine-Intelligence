@@ -21,27 +21,45 @@ class ParkingProblem(Problem[ParkingState, ParkingAction]):
     # This function should return the initial state
     def get_initial_state(self) -> ParkingState:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        return self.cars # returning positions of cars 
     
     # This function should return True if the given state is a goal. Otherwise, it should return False.
     def is_goal(self, state: ParkingState) -> bool:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        for i, pos in enumerate(state): # looping on positions of cars at current state 
+            if pos not in self.slots or self.slots[pos] != i: # if curr position does not match goal for any car -> return false
+                return False
+        return True
     
     # This function returns a list of all the possible actions that can be applied to the given state
     def get_actions(self, state: ParkingState) -> List[ParkingAction]:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        actions = []
+        for i, pos in enumerate(state): # looping for each car 
+            for d in Direction: # looping for each possible direction
+                new_pos = pos + d.to_vector() # new pos
+                if new_pos in self.passages and new_pos not in state: # add action if new pos is a passage (not a wall) and it is not occupied
+                    actions.append((i, d))
+        return actions
     
     # This function returns a new state which is the result of applying the given action to the given state
     def get_successor(self, state: ParkingState, action: ParkingAction) -> ParkingState:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        i, d = action
+        move = Direction._Vectors[d.value]
+        new_pos = state[i] + move # new pos after action
+        new_state = list(state)
+        if new_pos in self.passages: # if new position is not a wall
+            new_state[i] = new_pos
+            return tuple(new_state)
+        else:
+            return state
     
     # This function returns the cost of applying the given action to the given state
     def get_cost(self, state: ParkingState, action: ParkingAction) -> float:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        i, _ = action # i is index of letter A -> 0 and cost is 26 complement so cost is 26 - 0 = 26
+        return 26 - i
     
      # Read a parking problem from text containing a grid of tiles
     @staticmethod
