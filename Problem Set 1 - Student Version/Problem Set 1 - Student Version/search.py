@@ -36,7 +36,23 @@ def BreadthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
 
 def DepthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
     #TODO: ADD YOUR CODE HERE
-    NotImplemented()
+    if problem.is_goal(initial_state): # check if already at goal no actions needed
+        return []
+    
+    stack = [(initial_state, [])] # stack for DFS
+    visited = set([initial_state]) # keeping track of visited nodes to avoid cycles
+
+    while stack:
+        state, path = stack.pop() # getting last state and path
+        if problem.is_goal(state): # if at goal return path (at pop)
+                    return path
+        for action in problem.get_actions(state): # getting every action possible at current state
+            successor = problem.get_successor(state, action) # getting new state from that action 
+            if successor not in visited:  # if not visited
+                visited.add(successor) # mark as visited
+                new_path = path + [action] # add action to path
+                stack.append((successor, new_path)) # else add to stack and continue searching 
+    return None # no path found return None
     
 
 def UniformCostSearch(problem: Problem[S, A], initial_state: S) -> Solution:
