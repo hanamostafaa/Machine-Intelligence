@@ -82,7 +82,30 @@ def UniformCostSearch(problem: Problem[S, A], initial_state: S) -> Solution:
 
 def AStarSearch(problem: Problem[S, A], initial_state: S, heuristic: HeuristicFunction) -> Solution:
     #TODO: ADD YOUR CODE HERE
-    NotImplemented()
+    if problem.is_goal(initial_state): # check if already at goal no actions needed
+        return []
+    
+    counter = count() # to keep order for equal costs
+    pq = [(0,next(counter),0 , initial_state, [])] # priority queue for A*
+    visited = {} # keeping track of visited nodes and their cost
+
+    while pq:
+        cost_h,_,cost, state, path = heapq.heappop(pq)
+
+        if state in visited and visited[state] <= cost_h: # if already visited and cost is higher ignore
+            continue
+        visited[state] = cost_h # else update/add cost to this state 
+
+        if problem.is_goal(state): # if at goal return path (at dequeue)
+            return path
+        
+        for action in problem.get_actions(state): # getting every action possible at current state
+            successor = problem.get_successor(state, action) # getting new state from that action 
+            new_path = path + [action] # add action to path
+            new_cost = cost + problem.get_cost(state, action) # add cost to path
+            cost_and_h = new_cost + heuristic(problem,successor) # calculate f(n) = g(n) + h(n)
+            heapq.heappush(pq, (cost_and_h, next(counter),new_cost, successor, new_path)) # add to priority queue and continue searching 
+    return None # no path found return None
 
 def BestFirstSearch(problem: Problem[S, A], initial_state: S, heuristic: HeuristicFunction) -> Solution:
     #TODO: ADD YOUR CODE HERE
