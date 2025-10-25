@@ -8,14 +8,22 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
     return min(manhattan_distance(state.player, crate) for crate in state.crates) - 1
 
 #TODO: Import any modules and write any functions you want to use
-
-
 def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
-    #TODO: ADD YOUR CODE HERE
-    #IMPORTANT: DO NOT USE "problem.get_actions" HERE.
-    # Calling it here will mess up the tracking of the expanded nodes count
-    # which is the number of get_actions calls during the search
-    #NOTE: you can use problem.cache() to get a dictionary in which you can store information that will persist between calls of this function
-    # This could be useful if you want to store the results heavy computations that can be cached and used across multiple calls of this function
-    if problem.is_goal(state): return 0
-    return min(manhattan_distance(state.player, crate) for crate in state.crates)
+
+    if problem.is_goal(state):
+        return 0
+
+    crates = state.crates
+    goals = problem.layout.goals
+
+    if not crates:
+        return 0
+
+    # Sum of each crate's distance to nearest goal
+    total_distance = 0
+    min_player_dist = min(manhattan_distance(state.player, crate) for crate in state.crates) - 1
+    misplaced_crates = [crate for crate in crates if crate not in goals]
+    for crate in misplaced_crates:
+        min_dist = min(manhattan_distance(crate, goal) for goal in goals)
+        total_distance += min_dist
+    return total_distance + min_player_dist
