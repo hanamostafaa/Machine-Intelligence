@@ -4,6 +4,7 @@ from helpers.utils import NotImplemented
 
 #TODO: Import any modules you want to use
 import heapq
+from itertools import count
 
 # All search functions take a problem and a state
 # If it is an informed search function, it will also receive a heuristic function
@@ -28,7 +29,7 @@ def BreadthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
             if successor not in visited:  # if not visited
                 visited.add(successor) # mark as visited
                 new_path = path + [action] # add action to path
-                if problem.is_goal(successor): # if at goal return path 
+                if problem.is_goal(successor): # if at goal return path (at enqueue)
                     return new_path
                 q.append((successor, new_path)) # else add to queue and continue searching 
     return None # no path found return None 
@@ -40,7 +41,28 @@ def DepthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
 
 def UniformCostSearch(problem: Problem[S, A], initial_state: S) -> Solution:
     #TODO: ADD YOUR CODE HERE
-    NotImplemented()
+    if problem.is_goal(initial_state): # check if already at goal no actions needed
+        return []
+    
+    counter = count() # to keep order for equal costs
+    pq = [(0,next(counter) , initial_state, [])] # priority queue for UCS
+    visited = {} # keeping track of visited nodes and their cost
+
+    while pq:
+        cost,_, state, path = heapq.heappop(pq)
+        if state in visited and visited[state] <= cost: # if already visited and cost is higher ignore
+            continue
+        visited[state] = cost # else update/add cost to this state 
+
+        if problem.is_goal(state): # if at goal return path (at dequeue)
+            return path
+        
+        for action in problem.get_actions(state): # getting every action possible at current state
+            successor = problem.get_successor(state, action) # getting new state from that action 
+            new_path = path + [action] # add action to path
+            new_cost = cost + problem.get_cost(state, action) # add cost to path
+            heapq.heappush(pq, (new_cost, next(counter), successor, new_path)) # add to priority queue and continue searching 
+    return None # no path found return None
 
 def AStarSearch(problem: Problem[S, A], initial_state: S, heuristic: HeuristicFunction) -> Solution:
     #TODO: ADD YOUR CODE HERE
