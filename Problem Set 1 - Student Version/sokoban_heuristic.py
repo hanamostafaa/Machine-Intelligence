@@ -293,9 +293,14 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
 
     px, py = state.player.x, state.player.y
     h_player = min(abs(px - cx) + abs(py - cy) for (cx, cy) in crates)
-    h_crates = sum(goal_dists[(cx, cy)] for (cx, cy) in crates)
 
-    h = h_crates + 0.25 * h_player
+    # number of misplaced crates
+    misplaced_crates = [crate for crate in crates if crate not in goals]
+    h3 = len(misplaced_crates)
+    h_crates = sum(goal_dists[(cx, cy)] for (cx, cy) in misplaced_crates)
+
+
+    h = h_crates + 0.45 * h_player + 0.01 * h3
 
     h = round(h)  
 
