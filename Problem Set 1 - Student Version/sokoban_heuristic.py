@@ -18,6 +18,22 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
 
     crates = state.crates
     goals = problem.layout.goals
+    layout = problem.layout
+    walls = {Point(x, y) for x in range(layout.width)
+                        for y in range(layout.height)
+                        if Point(x, y) not in layout.walkable}
+    
+    misplaced_crates = [crate for crate in crates if crate not in goals]
+    
+    # simple deadlock detection
+    for crate in misplaced_crates:
+            x, y = crate.x, crate.y
+            if ((Point(x+1, y) in walls or Point(x-1, y) in walls) and
+                (Point(x, y+1) in walls or Point(x, y-1) in walls)):
+                # Crate stuck in a corner, not on goal → deadlock
+                problem.cache()[state] = float('inf')
+                return float('inf')
+
 
     if not crates:
         problem.cache()[state] = 0
@@ -27,7 +43,6 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     h1 = min(manhattan_distance(state.player, crate) for crate in crates)
 
     # Misplaced Crates to goal distances
-    misplaced_crates = [crate for crate in crates if crate not in goals]
     h2 = sum(min(manhattan_distance(crate, goal) for goal in goals) for crate in misplaced_crates)
 
     # number of misplaced crates
