@@ -254,47 +254,52 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
         return cache[state]
 
     if problem.is_goal(state):
-        cache[state] = 0
-        return 0
-
-    crates = state.crates
-    goals = problem.layout.goals
+        cache[state] = 0.0
+        return 0.0
 
     layout = problem.layout
-    
+
     if 'walls' not in cache:
-        try:
-            cache['walls'] = {Point(x, y) for x in range(layout.width)
-                        for y in range(layout.height)
-                        if Point(x, y) not in layout.walkable}
-        except Exception:
-            cache['walls'] = set()
+        walkable = {(p.x, p.y) for p in layout.walkable}
+        cache['walls'] = {(x, y) for x in range(layout.width)
+                          for y in range(layout.height)
+                          if (x, y) not in walkable}
     walls = cache['walls']
-    
-    misplaced_crates = [crate for crate in crates if crate not in goals]
-    
-    # simple deadlock detection
-    for crate in misplaced_crates:
-            x, y = crate.x, crate.y
-            if ((Point(x+1, y) in walls or Point(x-1, y) in walls) and
-                (Point(x, y+1) in walls or Point(x, y-1) in walls)):
-                # Crate stuck in a corner, not on goal → deadlock
+
+    if 'goals' not in cache:
+        cache['goals'] = [(g.x, g.y) for g in layout.goals]
+    goals = cache['goals']
+
+    if 'goal_dists' not in cache:
+        goal_dists = {}
+        for x in range(layout.width):
+            for y in range(layout.height):
+                if (x, y) not in walls:
+                    goal_dists[(x, y)] = min(abs(x - gx) + abs(y - gy) for gx, gy in goals)
+        cache['goal_dists'] = goal_dists
+    goal_dists = cache['goal_dists']
+
+    crates = [(c.x, c.y) for c in state.crates]
+    if not crates:
+        cache[state] = 0.0
+        return 0.0
+
+    for (cx, cy) in crates:
+        if (cx, cy) not in goals:
+            if ((cx + 1, cy) in walls or (cx - 1, cy) in walls) and \
+               ((cx, cy + 1) in walls or (cx, cy - 1) in walls):
                 cache[state] = float('inf')
                 return float('inf')
 
-    if not crates:
-        cache[state] = 0
-        return 0
-    # Player to crate distance
-    h1 = min(manhattan_distance(state.player, crate) for crate in crates)
+    px, py = state.player.x, state.player.y
+    h_player = min(abs(px - cx) + abs(py - cy) for (cx, cy) in crates)
+    h_crates = sum(goal_dists[(cx, cy)] for (cx, cy) in crates)
 
-    # Misplaced Crates to goal distances
-    h2 = sum(min(manhattan_distance(crate, goal) for goal in goals) for crate in misplaced_crates)
+    h = h_crates + 0.25 * h_player
 
-    # number of misplaced crates
-    h3 = len(misplaced_crates)
-
-    h = max(h1, h2, h3) # max of 3 heuristics
+    h = round(h)  
 
     cache[state] = h
     return h
+
+
