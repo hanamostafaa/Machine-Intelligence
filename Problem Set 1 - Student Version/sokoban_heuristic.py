@@ -9,34 +9,44 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
 def is_deadlock(crate, state):
     goals = state.layout.goals
     walkable = state.layout.walkable
-    nearest_goal = min(goals, key=lambda g: manhattan_distance(crate, g))
+    nearest_goal = min(goals, key=lambda g: manhattan_distance(crate, g)) # checking closest goal to crate
 
     directions = {
-        "right": (Point(1, 0), lambda: crate.x > nearest_goal.x),   # left
-        "left":  (Point(-1, 0), lambda: crate.x < nearest_goal.x),  # right
-        "down":  (Point(0, 1), lambda: crate.y > nearest_goal.y),   # above
-        "up":    (Point(0, -1), lambda: crate.y < nearest_goal.y),  # below
+        "right": (Point(1, 0), lambda: crate.x > nearest_goal.x),   # wall on the right and goal on the left 
+        "left":  (Point(-1, 0), lambda: crate.x < nearest_goal.x),  # wall on the left and goal on the right 
+        "down":  (Point(0, 1), lambda: crate.y > nearest_goal.y),   # wall down and goal up 
+        "up":    (Point(0, -1), lambda: crate.y < nearest_goal.y),  # wall up and goal down
     }
 
     for _, (offset, goal_condition) in directions.items():
-        neighbor = crate + offset
-        if neighbor not in walkable and goal_condition():
+        neighbor = crate + offset # checking crate neighbors in four directions 
+        if neighbor not in walkable and goal_condition(): # if that neighbor is a wall and goal is on the opposite direction return true 
             return True
 
     return False
 
+############# simplified version takes a little more nodes and little less time ################
+# def min_matching_cost(crates, goals):
+#     total_cost = 0
+#     goals = list(goals)
+
+#     for c in crates:
+#         closest_goal = min(goals, key=lambda g: manhattan_distance(c, g))
+#         total_cost += manhattan_distance(c, closest_goal)
+
+#     return total_cost
 
 def min_matching_cost(crates, goals):
     crates = list(crates)
     goals = list(goals)
 
     n = len(crates)
-    cost_matrix = [[manhattan_distance(c, g) for g in goals] for c in crates]
+    cost_matrix = [[manhattan_distance(c, g) for g in goals] for c in crates] # a matrix to keep track of distance between each caret and all goals 
 
     min_cost = float('inf')
-    for perm in permutations(range(n)):
-        total = sum(cost_matrix[i][perm[i]] for i in range(n))
-        min_cost = min(min_cost, total)
+    for perm in permutations(range(n)): # trying all permutations to get minimum sum of distances 
+        total = sum(cost_matrix[i][perm[i]] for i in range(n)) # sum of distances to this permutation
+        min_cost = min(min_cost, total) 
     return min_cost
 
 
