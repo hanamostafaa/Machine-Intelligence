@@ -5,6 +5,7 @@ from helpers.utils import NotImplemented
 #TODO: Import any modules you want to use
 import heapq
 from itertools import count
+import math
 
 # All search functions take a problem and a state
 # If it is an informed search function, it will also receive a heuristic function
@@ -91,6 +92,8 @@ def AStarSearch(problem: Problem[S, A], initial_state: S, heuristic: HeuristicFu
 
     while pq:
         cost_h,_,cost, state, path = heapq.heappop(pq)
+        if math.isinf(cost_h):
+            continue
 
         if state in visited and visited[state] <= cost_h: # if already visited and cost is higher ignore
             continue

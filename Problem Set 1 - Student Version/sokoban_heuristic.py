@@ -7,66 +7,75 @@ from helpers.utils import NotImplemented
 def weak_heuristic(problem: SokobanProblem, state: SokobanState):
     return min(manhattan_distance(state.player, crate) for crate in state.crates) - 1
 
-# sokoban_heuristics.py
-
-from itertools import permutations
-from collections import deque
 import math
-def is_corner_deadlock(pos, walls, goals_set):
-    """
-    Simple corner check: if a crate is in a corner (two orthogonal walls) and not on a goal -> deadlocked.
-    pos: (x,y) tuple
-    walls: set of (x,y)
-    goals_set: set of (x,y)
-    """
-    if pos in goals_set:
-        return False
-    x,y = pos
-    up = (x, y-1)
-    down = (x, y+1)
-    left = (x-1, y)
-    right = (x+1, y)
-    # check (up or down) AND (left or right)
-    if (up in walls or down in walls) and (left in walls or right in walls):
+
+def is_deadlocked(goals, cx, cy, walls):
+    # Corner check 
+    if ((cx-1, cy) in walls and (cx, cy-1) in walls) or \
+       ((cx+1, cy) in walls and (cx, cy-1) in walls) or \
+       ((cx-1, cy) in walls and (cx, cy+1) in walls) or \
+       ((cx+1, cy) in walls and (cx, cy+1) in walls):
         return True
+
+    # If the crate is directly against a wall, check if the entire line is blocked
+    # Case 1: wall on the left or right → scan vertically
+    if (cx-1, cy) in walls or (cx+1, cy) in walls:
+        return is_stuck_along_wall(cx, cy, walls, goals, vertical=True)
+
+    # Case 2: wall above or below → scan horizontally
+    if (cx, cy-1) in walls or (cx, cy+1) in walls:
+        return is_stuck_along_wall(cx, cy, walls, goals, vertical=False)
+
     return False
 
-def is_edge_deadlock(pos, walls, goals_set, layout):
 
-    if pos in goals_set:
-        return False
-    x,y = pos
-    up = (x,y-1)
-    down = (x,y+1)
-    left = (x-1,y)
-    right = (x+1,y)
-    width, height = layout.width, layout.height
-
-    if up in walls or down in walls:
-        lx = x
-        while (lx-1, y) not in walls and lx-1 >= 0:
-            lx -= 1
-        rx = x
-        while (rx+1, y) not in walls and rx+1 < width:
-            rx += 1
-        for gx in range(lx, rx+1):
-            if (gx, y) in goals_set:
+def is_stuck_along_wall(cx, cy, walls, goals, vertical=True):
+    """
+    Scan along the wall direction (up-down if vertical, left-right if horizontal)
+    and check if there is any goal or opening (no wall) along that line.
+    If every tile along the wall is also 'boxed in', return True.
+    """
+    if vertical:
+        # Move upward
+        y = cy - 1
+        while (cx, y) not in walls:
+            if (cx, y) in goals:
+                return False  # reachable goal on this wall line
+            # If space next to the wall opens (no wall beside crate)
+            if ((cx-1, y) not in walls) and ((cx+1, y) not in walls):
                 return False
-        return True
+            y -= 1
 
-    if left in walls or right in walls:
-        ly = y
-        while (x, ly-1) not in walls and ly-1 >= 0:
-            ly -= 1
-        ry = y
-        while (x, ry+1) not in walls and ry+1 < height:
-            ry += 1
-        for gy in range(ly, ry+1):
-            if (x, gy) in goals_set:
+        # Move downward
+        y = cy + 1
+        while (cx, y) not in walls:
+            if (cx, y) in goals:
                 return False
-        return True
+            if ((cx-1, y) not in walls) and ((cx+1, y) not in walls):
+                return False
+            y += 1
 
-    return False
+    else:
+        # Move left
+        x = cx - 1
+        while (x, cy) not in walls:
+            if (x, cy) in goals:
+                return False
+            if ((x, cy-1) not in walls) and ((x, cy+1) not in walls):
+                return False
+            x -= 1
+
+        # Move right
+        x = cx + 1
+        while (x, cy) not in walls:
+            if (x, cy) in goals:
+                return False
+            if ((x, cy-1) not in walls) and ((x, cy+1) not in walls):
+                return False
+            x += 1
+
+    return True  # whole line blocked — deadlock
+
 
 def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     cache = problem.cache()
@@ -100,11 +109,10 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     goal_dists = cache['goal_dists']
 
     crates = state.crates
-
+    h_crates = 0
     for (cx, cy) in crates:
         if (cx, cy) not in goals:
-            if (((cx + 1, cy) in walls or (cx - 1, cy) in walls) and \
-               ((cx, cy + 1) in walls or (cx, cy - 1) in walls)) or is_edge_deadlock((cx, cy), walls, goals, layout):
+            if (is_deadlocked(goals,cx,cy,walls)):
                 cache[state] = float('inf')
                 return float('inf')
 
@@ -112,7 +120,7 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     h_player = min(abs(px - cx) + abs(py - cy) for (cx, cy) in crates)
     h_crates = sum(goal_dists[(cx, cy)] for (cx, cy) in crates)
 
-    h = h_crates + 0.45 * h_player 
+    h = h_crates + 0.4 * h_player
 
     h = round(h)  
 
