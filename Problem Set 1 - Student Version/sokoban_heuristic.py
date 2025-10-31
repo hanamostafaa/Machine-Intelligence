@@ -6,16 +6,16 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
     return min(manhattan_distance(state.player, crate) for crate in state.crates) - 1
 
 
-def is_deadlock(crate, state):
+def is_deadlocked(crate, state):
     goals = state.layout.goals
     walkable = state.layout.walkable
     nearest_goal = min(goals, key=lambda g: manhattan_distance(crate, g)) # checking closest goal to crate
 
     directions = {
-        "right": (Point(1, 0), lambda: crate.x > nearest_goal.x),   # wall on the right and goal on the left 
-        "left":  (Point(-1, 0), lambda: crate.x < nearest_goal.x),  # wall on the left and goal on the right 
         "down":  (Point(0, 1), lambda: crate.y > nearest_goal.y),   # wall down and goal up 
         "up":    (Point(0, -1), lambda: crate.y < nearest_goal.y),  # wall up and goal down
+        "right": (Point(1, 0), lambda: crate.x > nearest_goal.x),   # wall on the right and goal on the left 
+        "left":  (Point(-1, 0), lambda: crate.x < nearest_goal.x),  # wall on the left and goal on the right 
     }
 
     for _, (offset, goal_condition) in directions.items():
@@ -24,17 +24,6 @@ def is_deadlock(crate, state):
             return True
 
     return False
-
-############# simplified version takes a little more nodes and little less time ################
-# def min_matching_cost(crates, goals):
-#     total_cost = 0
-#     goals = list(goals)
-
-#     for c in crates:
-#         closest_goal = min(goals, key=lambda g: manhattan_distance(c, g))
-#         total_cost += manhattan_distance(c, closest_goal)
-
-#     return total_cost
 
 def min_matching_cost(crates, goals):
     crates = list(crates)
@@ -63,11 +52,11 @@ def strong_heuristic(problem, state):
         return 0.0
     # Deadlock detection
     for crate in crates:
-        if crate not in goals and is_deadlock(crate, state):
+        if crate not in goals and is_deadlocked(crate, state):
             cache[state] = float('inf')
             return float('inf')
 
-    # Crate-goal matching heuristic
+    # Crate-goal matching heuristic (finds min sum of crate-goal distances)
     h_crates = min_matching_cost(crates, goals)
 
     # Player distance to the nearest crate (to tighten the heuristic more)
