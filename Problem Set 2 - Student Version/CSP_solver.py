@@ -108,5 +108,40 @@ def least_restraining_values(problem: Problem, variable_to_assign: str, domains:
 #            for every assignment including the initial empty assignment, EXCEPT for the assignments pruned by the forward checking.
 #            Also, if 1-Consistency deems the whole problem unsolvable, you shouldn't call "problem.is_complete" at all.
 def solve(problem: Problem) -> Optional[Assignment]:
-    #TODO: Write this function
-    NotImplemented()
+    if not one_consistency(problem):
+        return None
+    # starting with empty assignment
+    return backtrack({}, problem, {var: vals.copy() for var, vals in problem.domains.items()})
+
+def backtrack(assignment: Assignment, problem: Problem, domains: Dict[str, set]) -> Optional[Assignment]:
+    # if assignment is complete, return it
+    if problem.is_complete(assignment):
+        return assignment
+
+    # select unassigned variable using MRV
+    unassigned_domains = {v: d for v, d in domains.items() if v not in assignment}
+    var = minimum_remaining_values(problem, unassigned_domains) # MRV chooses from unassigned
+
+    # ordered domain values based on least restraining values
+    ordered_values = least_restraining_values(problem, var, unassigned_domains)
+
+    for val in ordered_values:
+        # copy of domains to be modified by forward checking and passed in recursive call
+        new_domains = {v: d.copy() for v, d in unassigned_domains.items()}
+
+        # forward checking (checking that there is new violation and updating domains)
+        if forward_checking(problem, var, val, new_domains):
+            # assign variable
+            assignment[var] = val
+            # recursive call with updated domains
+            result = backtrack(assignment, problem, new_domains)
+            if result is not None:
+                return result
+            # backtrack
+            del assignment[var]
+
+    # no valid assignment found 
+    return None
+
+
+    
