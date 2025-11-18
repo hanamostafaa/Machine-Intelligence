@@ -73,7 +73,30 @@ def forward_checking(problem: Problem, assigned_variable: str, assigned_value: A
 #            since they contain the current domains of unassigned variables only.
 def least_restraining_values(problem: Problem, variable_to_assign: str, domains: Dict[str, set]) -> List[Any]:
     #TODO: Write this function
-    NotImplemented()
+    #returns ordered list (domain) according to restraining values
+    removed_vals_count = []
+    for val in domains[variable_to_assign]: # loop on all domain values for the variable to be assigned
+        removed_counts = 0
+        for constraint in problem.constraints:
+            if not isinstance(constraint, BinaryConstraint): #not a binary constraint
+                continue
+            if variable_to_assign not in constraint.variables: # constraint not related to the assigned variable
+                continue
+            other_var = constraint.variables[1] if constraint.variables[0] == variable_to_assign else constraint.variables[0]
+            if other_var not in domains:  # variable is already assigned
+                continue
+            for domain_val in list(domains[other_var]): #loop over possible domain values
+                new_assignment: Assignment = {variable_to_assign: val, other_var: domain_val} #new assignment with assigned value for the assigned var and potential domain val for the other one
+                if not constraint.is_satisfied(new_assignment): #if the new assignment is not ok ( violates the constraint)
+                    removed_counts+= 1 
+        removed_vals_count.append((removed_counts, val)) # add corresponding removed values (from other vars) for each domain value
+
+    removed_vals_count.sort(key=lambda x: (x[0], x[1]))   # sort on removed counts (least restraining) , then on values (for tie break)
+
+    sorted_domain = [val for _, val in removed_vals_count]
+
+    return sorted_domain
+
 
 # This function should solve CSP problems using backtracking search with forward checking.
 # The variable ordering should be decided by the MRV heuristic.
