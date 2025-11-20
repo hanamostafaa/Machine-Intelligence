@@ -52,8 +52,104 @@ class CryptArithmeticProblem(Problem):
         problem.variables = []
         problem.domains = {}
         problem.constraints = []
-        return problem
+        letters = set(LHS0 + LHS1 + RHS)
+        problem.variables.extend(letters)
+        n = len(RHS)
+        carry_vars = [f"C{i}" for i in range(0, n)] 
+        problem.variables.extend(carry_vars)
+        for L in letters:
+            problem.domains[L] = set(range(10))
+        
+        leading = {LHS0[0], LHS1[0], RHS[0]}
+        # add unary constraints (leading != 0)
+        for letter in leading:
+            problem.constraints.append(UnaryConstraint(letter, lambda v: v != 0))
+        # add uniqueness constraints binary
+        letter_list = list(letters)
+        for i in range(len(letter_list) - 1):
+            for j in range(i + 1, len(letter_list)):
+                A = letter_list[i]
+                B = letter_list[j]
+                problem.constraints.append(
+                    BinaryConstraint((A, B),
+                                    lambda a, b: a != b)
+                )
 
+        n = len(RHS)
+        # i can only add binary constraints
+        # binary constraint takes a tuple of 2 strings (variable names) and a function that takes 2 values
+        for i in range(n):
+            # column index (from right)
+            L0 = LHS0[-1-i] if i < len(LHS0) else None
+            L1 = LHS1[-1-i] if i < len(LHS1) else None
+            R = RHS[-1-i]
+
+            Cin = f"C{i}"  
+            Cout = f"C{i+1}" if i < n - 1 else None
+
+            # mega variables
+            S = f"S_{i}"    # (x, y, cin)
+            T = f"T_{i}"    # (r, cout)
+
+            # Add variables
+            problem.variables.extend([Cin, Cout, S, T])
+
+            # Domains of carries
+            problem.domains[Cin] = {0, 1}
+            problem.domains[Cout] = {0, 1}
+
+            # Domain of S mega-variable: all (x,y,cin)
+            S_domain = set()
+            for x in range(10):
+                for y in range(10):
+                    for c in [0, 1]:
+                        S_domain.add((x, y, c))
+            problem.domains[S] = S_domain
+
+            # Domain of T mega-variable: all (r,cout)
+            T_domain = set()
+            for r in range(10):
+                for c in [0, 1]:
+                    T_domain.add((r, c))
+            problem.domains[T] = T_domain
+
+            # -------- Linking letter → S constraints --------
+            if L0 is not None:
+                problem.constraints.append(
+                    BinaryConstraint((L0, S), lambda x, s: s[0] == x)
+                )
+
+            if L1 is not None:
+                problem.constraints.append(
+                    BinaryConstraint((L1, S), lambda y, s: s[1] == y)
+                )
+
+            problem.constraints.append(
+                BinaryConstraint((Cin, S), lambda c, s: s[2] == c)
+            )
+
+            # -------- Linking result letters → T constraints --------
+            problem.constraints.append(
+                BinaryConstraint((R, T), lambda r, t: t[0] == r)
+            )
+
+            problem.constraints.append(
+                BinaryConstraint((Cout, T), lambda c, t: t[1] == c)
+            )
+
+            # -------- Arithmetic Check: S → T --------
+            def col_rule(s, t):
+                x, y, cin = s
+                r, cout = t
+                total = x + y + cin
+                return (total % 10 == r) and (total // 10 == cout)
+
+            problem.constraints.append(
+                BinaryConstraint((S, T), col_rule)
+            )
+
+
+        return problem
     # Read a cryptarithmetic puzzle from a file
     @staticmethod
     def from_file(path: str) -> "CryptArithmeticProblem":
