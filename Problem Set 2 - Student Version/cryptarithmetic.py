@@ -30,126 +30,110 @@ class CryptArithmeticProblem(Problem):
 
     @staticmethod
     def from_text(text: str) -> 'CryptArithmeticProblem':
-        # Given a text in the format "LHS0 + LHS1 = RHS", the following regex
-        # matches and extracts LHS0, LHS1 & RHS
-        # For example, it would parse "SEND + MORE = MONEY" and extract the
-        # terms such that LHS0 = "SEND", LHS1 = "MORE" and RHS = "MONEY"
         pattern = r"\s*([a-zA-Z]+)\s*\+\s*([a-zA-Z]+)\s*=\s*([a-zA-Z]+)\s*"
         match = re.match(pattern, text)
-        if not match: raise Exception("Failed to parse:" + text)
+        if not match:
+            raise Exception("Failed to parse:" + text)
         LHS0, LHS1, RHS = [match.group(i+1).upper() for i in range(3)]
 
         problem = CryptArithmeticProblem()
         problem.LHS = (LHS0, LHS1)
         problem.RHS = RHS
 
-        #TODO Edit and complete the rest of this function
-        # problem.variables:    should contain a list of variables where each variable is string (the variable name)
-        # problem.domains:      should be dictionary that maps each variable (str) to its domain (set of values)
-        #                       For the letters, the domain can only contain integers in the range [0,9].
-        # problem.constaints:   should contain a list of constraint (either unary or binary constraints).
-
+        # init
         problem.variables = []
         problem.domains = {}
         problem.constraints = []
+
         letters = set(LHS0 + LHS1 + RHS)
-        problem.variables.extend(letters)
-        n = len(RHS)
-        carry_vars = [f"C{i}" for i in range(0, n)] 
-        problem.variables.extend(carry_vars)
+        # letter variables and domains
         for L in letters:
+            problem.variables.append(L)
             problem.domains[L] = set(range(10))
-        
+
+        n = len(RHS)  # number of columns (based on RHS length)
+
+        # leading letters cannot be zero
         leading = {LHS0[0], LHS1[0], RHS[0]}
-        # add unary constraints (leading != 0)
         for letter in leading:
             problem.constraints.append(UnaryConstraint(letter, lambda v: v != 0))
-        # add uniqueness constraints binary
+
+        # all letters must be different (pairwise)
         letter_list = list(letters)
         for i in range(len(letter_list) - 1):
             for j in range(i + 1, len(letter_list)):
                 A = letter_list[i]
                 B = letter_list[j]
-                problem.constraints.append(
-                    BinaryConstraint((A, B),
-                                    lambda a, b: a != b)
-                )
+                problem.constraints.append(BinaryConstraint((A, B), lambda a, b: a != b))
 
-        n = len(RHS)
-        # i can only add binary constraints
-        # binary constraint takes a tuple of 2 strings (variable names) and a function that takes 2 values
+        # create carry variables C0..C(n-1)
         for i in range(n):
-            # column index (from right)
-            L0 = LHS0[-1-i] if i < len(LHS0) else None
-            L1 = LHS1[-1-i] if i < len(LHS1) else None
-            R = RHS[-1-i]
+            var = f"C{i}"
+            problem.variables.append(var)
+            problem.domains[var] = {0, 1}
 
-            Cin = f"C{i}"  
+        # Now build columns right-to-left
+        for i in range(n):
+            L0 = LHS0[-1 - i] if i < len(LHS0) else None
+            L1 = LHS1[-1 - i] if i < len(LHS1) else None
+            R = RHS[-1 - i]
+
+            Cin = f"C{i}"
             Cout = f"C{i+1}" if i < n - 1 else None
 
-            # mega variables
-            S = f"S_{i}"    # (x, y, cin)
-            T = f"T_{i}"    # (r, cout)
+            # Mega variables S_i and T_i (S=(x,y,cin), T=(r,cout))
+            S = f"S_{i}"
+            T = f"T_{i}"
+            problem.variables.extend([S, T])
 
-            # Add variables
-            problem.variables.extend([Cin, Cout, S, T])
-
-            # Domains of carries
-            problem.domains[Cin] = {0, 1}
-            problem.domains[Cout] = {0, 1}
-
-            # Domain of S mega-variable: all (x,y,cin)
+            # Build S domain: if L0 is missing, x must be 0; if L1 missing, y must be 0
             S_domain = set()
-            for x in range(10):
-                for y in range(10):
-                    for c in [0, 1]:
+            xs = [0] if L0 is None else range(10)
+            ys = [0] if L1 is None else range(10)
+            for x in xs:
+                for y in ys:
+                    for c in (0, 1):
                         S_domain.add((x, y, c))
             problem.domains[S] = S_domain
 
-            # Domain of T mega-variable: all (r,cout)
-            T_domain = set()
-            for r in range(10):
-                for c in [0, 1]:
-                    T_domain.add((r, c))
-            problem.domains[T] = T_domain
+            # T domain: r in 0..9, cout in {0,1}
+            problem.domains[T] = {(r, c) for r in range(10) for c in (0, 1)}
 
-            # -------- Linking letter → S constraints --------
+            # Link letters → S
             if L0 is not None:
-                problem.constraints.append(
-                    BinaryConstraint((L0, S), lambda x, s: s[0] == x)
-                )
-
+                problem.constraints.append(BinaryConstraint((L0, S), lambda x, s: s[0] == x))
             if L1 is not None:
-                problem.constraints.append(
-                    BinaryConstraint((L1, S), lambda y, s: s[1] == y)
-                )
+                problem.constraints.append(BinaryConstraint((L1, S), lambda y, s: s[1] == y))
+            # link Cin → S (Cin always exists)
+            problem.constraints.append(BinaryConstraint((Cin, S), lambda c, s: s[2] == c))
 
-            problem.constraints.append(
-                BinaryConstraint((Cin, S), lambda c, s: s[2] == c)
-            )
+            # Link result letter → T
+            problem.constraints.append(BinaryConstraint((R, T), lambda r, t: t[0] == r))
 
-            # -------- Linking result letters → T constraints --------
-            problem.constraints.append(
-                BinaryConstraint((R, T), lambda r, t: t[0] == r)
-            )
+            # Link Cout → T only if Cout exists
+            if Cout is not None:
+                problem.constraints.append(BinaryConstraint((Cout, T), lambda c, t: t[1] == c))
 
-            problem.constraints.append(
-                BinaryConstraint((Cout, T), lambda c, t: t[1] == c)
-            )
-
-            # -------- Arithmetic Check: S → T --------
+            # Arithmetic constraint S->T: (x + y + cin) == r + 10 * cout
             def col_rule(s, t):
                 x, y, cin = s
                 r, cout = t
                 total = x + y + cin
                 return (total % 10 == r) and (total // 10 == cout)
+            problem.constraints.append(BinaryConstraint((S, T), col_rule))
 
-            problem.constraints.append(
-                BinaryConstraint((S, T), col_rule)
-            )
-
+            # Edge case: if both L0 and L1 are None (both LHS don't have this column)
+            # then the sum is 0 + 0 + Cin -> R must equal Cin and Cout must be 0.
+            # (This case is already handled by the S/T domain construction where xs=[0], ys=[0],
+            # but to be explicit we can add constraints relating R and carries.)
+            if L0 is None and L1 is None:
+                # ensure R equals Cin and Cout == 0 (if Cout exists)
+                problem.constraints.append(BinaryConstraint((R, Cin), lambda r, c: r == c))
+                if Cout is not None:
+                    problem.constraints.append(BinaryConstraint((Cout,), lambda c: c == 0))  # unary on Cout
 
         return problem
+
     # Read a cryptarithmetic puzzle from a file
     @staticmethod
     def from_file(path: str) -> "CryptArithmeticProblem":
