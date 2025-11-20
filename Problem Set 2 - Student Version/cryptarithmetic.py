@@ -82,6 +82,9 @@ class CryptArithmeticProblem(Problem):
             Cin = f"C{i}" 
             Cout = f"C{i+1}" if L0 is not None or L1 is not None else None
 
+            if i + 1 >= n:
+                problem.domains[Cout] = {0}
+
             # Mega variables S_i and T_i (S=(x,y,cin), T=(r,cout))
             # x = L0, y = L1, r = R
             S = f"S_{i}"
