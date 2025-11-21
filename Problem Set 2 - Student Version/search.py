@@ -31,17 +31,17 @@ def greedy(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: 
 def minimax(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
     #TODO: Complete this function
     terminal, values = game.is_terminal(state)
-    if terminal: return values[0], None
-    if max_depth == 0: return heuristic(game, state, 0), None
+    if terminal: return values[0], None  # return none as action in case of terminal state
+    if max_depth == 0: return heuristic(game, state, 0), None # in case of depth limit reached -> apply heuristic
 
     turn = game.get_turn(state)
-    actions_states = [(action, game.get_successor(state, action)) for action in game.get_actions(state)]
+    actions_states = [(action, game.get_successor(state, action)) for action in game.get_actions(state)] # get all possible actions and their successors 
 
     if turn == 0:
-        value, _, action = max((minimax(game, state, heuristic, max_depth - 1)[0], -index, action) for index, (action , state) in enumerate(actions_states))
+        value, _, action = max((minimax(game, state, heuristic, max_depth - 1)[0], -index, action) for index, (action , state) in enumerate(actions_states)) # if it is a max node get the max value
         return value,action
     else:
-        value, _, action = min((minimax(game, state, heuristic, max_depth - 1)[0], -index, action) for index, (action , state) in enumerate(actions_states))
+        value, _, action = min((minimax(game, state, heuristic, max_depth - 1)[0], -index, action) for index, (action , state) in enumerate(actions_states)) # if it is a min node get the min value
         return value,action
     
 
