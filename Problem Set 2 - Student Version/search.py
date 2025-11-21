@@ -106,7 +106,71 @@ def alphabeta(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_dept
 # Hint: Read the hint for minimax.
 def alphabeta_with_move_ordering(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
     #TODO: Complete this function
-    NotImplemented()
+    def alpha_beta_pruning(state, depth, alpha, beta):
+        terminal, values = game.is_terminal(state)
+        if terminal:
+            return values[0], None # return none as action in case of terminal state
+
+        if depth == 0:
+            return heuristic(game, state, 0), None # in case of depth limit reached -> apply heuristic
+
+        turn = game.get_turn(state) # get current turn (min or max)
+        actions = game.get_actions(state) # get all possible actions 
+
+        scored_actions = []  # to store actions and their heuristics 
+
+        for action in actions:
+            child = game.get_successor(state, action) # get successor 
+            h = heuristic(game, child, 0)  # get heuristic of that successor 
+            scored_actions.append((h, action)) # store heuristic for each action 
+
+        best_action = None # this will hold the best action found
+
+
+        if turn == 0: # max node
+            value = float("-inf")
+
+            ordered_actions = sorted(scored_actions, key=lambda x: x[0], reverse=True) # sort heuristic descendingly (maxmize)
+            ordered_actions = [action for (_, action) in ordered_actions]
+
+            for action in ordered_actions: # for every possible action
+                child = game.get_successor(state, action)
+                child_val, _ = alpha_beta_pruning(child, depth - 1, alpha, beta) # call minimax with alpha beta pruning recursively
+
+                if child_val > value: # if found better value
+                    value = child_val # update value 
+                    best_action = action # store action that lead to this value
+
+                if value >= beta:
+                    break  # prune
+
+                alpha = max(alpha, value) # update alpha (best value for max node so far)
+
+            return value, best_action
+
+    
+        else: # min node
+            value = float("inf")
+
+            ordered_actions = sorted(scored_actions, key=lambda x: x[0]) # sort heuristic ascendingly (minmize)
+            ordered_actions = [action for (_, action) in ordered_actions]
+
+            for action in ordered_actions:
+                child = game.get_successor(state, action)
+                child_val, _ = alpha_beta_pruning(child, depth - 1, alpha, beta)
+
+                if child_val < value:
+                    value = child_val
+                    best_action = action
+
+                if value <= alpha:
+                    break  # prune
+
+                beta = min(beta, value) # update beta (best value for min node so far)
+
+            return value, best_action
+
+    return alpha_beta_pruning(state, max_depth, float("-inf"), float("inf")) # alpha, beta starting with -inf, inf
 
 # Apply Expectimax search and return the tree value and the best action
 # Hint: Read the hint for minimax, but note that the monsters (turn > 0) do not act as min nodes anymore,
