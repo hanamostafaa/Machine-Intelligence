@@ -177,4 +177,23 @@ def alphabeta_with_move_ordering(game: Game[S, A], state: S, heuristic: Heuristi
 # they now act as chance nodes (they act randomly).
 def expectimax(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
     #TODO: Complete this function
-    NotImplemented()
+    terminal, values = game.is_terminal(state)
+    if terminal: return values[0], None  # return none as action in case of terminal state
+    if max_depth == 0: return heuristic(game, state, 0), None # in case of depth limit reached -> apply heuristic
+
+    turn = game.get_turn(state)
+    actions_states = [(action, game.get_successor(state, action)) for action in game.get_actions(state)] # get all possible actions and their successors 
+
+    if turn == 0:
+        value, _, action = max((expectimax(game, state, heuristic, max_depth - 1)[0], -index, action) for index, (action , state) in enumerate(actions_states)) # if it is a max node get the max value
+        return value,action
+    else:
+        child_values = []
+        for action, child_state in actions_states:
+            v = expectimax(game, child_state, heuristic, max_depth - 1)[0]
+            child_values.append(v)
+
+        value = sum(child_values) / len(child_values) # if it is a chance node get the average value
+        action = None  # no action returned from a chance node 
+
+        return value,action
