@@ -78,7 +78,9 @@ class SnakeEnv(Environment[SnakeObservation, Direction]):
             self.rng.seed(seed) # Initialize the random generator using the seed
         # TODO add your code here
         # IMPORTANT NOTE: Define the snake before calling generate_random_apple
-        NotImplemented()
+        self.snake = [Point(self.width // 2, self.height // 2)] # snack starts at the center
+        self.direction = Direction.LEFT # snake starts moving left
+        self.apple = self.generate_random_apple() # generate the first apple
 
         return SnakeObservation(tuple(self.snake), self.direction, self.apple)
 
@@ -92,7 +94,18 @@ class SnakeEnv(Environment[SnakeObservation, Direction]):
         # TODO add your code here
         # a snake can wrap around the grid
         # NOTE: The action order does not matter
-        NotImplemented()
+        opposite = {
+            Direction.RIGHT: Direction.LEFT,
+            Direction.LEFT: Direction.RIGHT,
+            Direction.UP: Direction.DOWN,
+            Direction.DOWN: Direction.UP,
+        } # opposite directions mapping
+        actions = [Direction.NONE]  # NONE is always allowed
+        for a in [Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT]:
+            if a != self.direction and a != opposite[self.direction]: # cannot move in the same or opposite direction
+                actions.append(a) 
+        return actions
+
 
     def step(self, action: Direction) -> \
             Tuple[SnakeObservation, float, bool, Dict]:
@@ -110,10 +123,54 @@ class SnakeEnv(Environment[SnakeObservation, Direction]):
             - info (Dict): A dictionary containing any extra information. You can keep it empty.
         """
         # TODO Complete the following function
-        NotImplemented()
+        # If action is NONE, keep moving in the current direction
+        if action == Direction.NONE:
+            action_to_take = self.direction # action none -> keep moving in the same direction
+        else:
+            action_to_take = action # take the given action
 
-        done = False
+        head = self.snake[0] # current head position
+        new_head = head # initialize new head position
+        if action_to_take == Direction.RIGHT:
+            # move right with wrap around
+            new_head = Point((head.x + 1) % self.width, head.y)
+        elif action_to_take == Direction.UP:
+            # move up with wrap around
+            new_head = Point(head.x, (head.y - 1) % self.height)
+        elif action_to_take == Direction.LEFT:
+            # move left with wrap around
+            new_head = Point((head.x - 1) % self.width, head.y)
+        elif action_to_take == Direction.DOWN:
+            # move down with wrap around
+            new_head = Point(head.x, (head.y + 1) % self.height)
+
+        self.direction = action_to_take # update the snake direction
+        self.snake.insert(0, new_head) # add new head to the snake
         reward = 0
+        done = False
+        # check if the snake bites itself
+        if new_head in self.snake[1:]:
+            reward = -100
+            done = True
+            observation = SnakeObservation(tuple(self.snake), self.direction, self.apple)
+            return observation, reward, done, {}
+        # check if the snake eats the apple
+        if self.apple is not None and new_head == self.apple:
+            # grow the snake by 1 
+            if len(self.snake) == self.width * self.height:
+                # win the game
+                reward = 100 + 1 # 100 for winning +1 for eating the apple
+                done = True
+                self.apple = None
+            else:
+                reward = 1 # reward for eating the apple
+                done = False
+                self.apple = self.generate_random_apple() # generate a new apple
+            observation = SnakeObservation(tuple(self.snake), self.direction, self.apple)
+            return observation, reward, done, {}
+        # if there is no apple -> move the snake without growing (remove the tail)
+        self.snake.pop() # remove the tail
+
         observation = SnakeObservation(tuple(self.snake), self.direction, self.apple)
         
         return observation, reward, done, {}
