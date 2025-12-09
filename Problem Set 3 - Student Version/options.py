@@ -4,16 +4,16 @@ def question2_1():
     #TODO: Choose options that would lead to the desired results 
     return {
         "noise": 0,
-        "discount_factor": 1,
-        "living_reward": 0
+        "discount_factor": 0.9,
+        "living_reward": -5
     }
 
 def question2_2():
     #TODO: Choose options that would lead to the desired results
     return {
-        "noise": 0,
-        "discount_factor": 1,
-        "living_reward": 0
+        "noise": 0.2,
+        "discount_factor": 0.3,
+        "living_reward": -0.1
     }
 
 def question2_3():
@@ -21,15 +21,15 @@ def question2_3():
     return {
         "noise": 0,
         "discount_factor": 1,
-        "living_reward": 0
+        "living_reward": -3
     }
 
 def question2_4():
     #TODO: Choose options that would lead to the desired results
         return {
-        "noise": 0,
+        "noise": 0.2,
         "discount_factor": 1,
-        "living_reward": 0
+        "living_reward": -0.1
     }
 
 def question2_5():
@@ -37,7 +37,7 @@ def question2_5():
     return {
         "noise": 0,
         "discount_factor": 1,
-        "living_reward": 0
+        "living_reward": 100
     }
 
 def question2_6():
@@ -45,5 +45,5 @@ def question2_6():
     return {
         "noise": 0,
         "discount_factor": 1,
-        "living_reward": 0
+        "living_reward": -100
     }
