@@ -242,12 +242,22 @@ class ApproximateQLearningAgent(RLAgent[S, A]):
     def __compute_q_from_features(self, features: Dict[str, float], action: A) -> float:
         # TODO: Complete this function
         # NOTE: Remember to cast the action to string before quering self.weights
-        NotImplemented()
+        # Q(s,a) = sum over f [ weight(a,f) * feature(f) ]
+        q_value = 0.0
+        for feature, value in features.items():
+            q_value += self.weights[action][feature] * value # sum of weight * feature value
+        return q_value
 
     # Given the features of a state, compute and return the utility of the state using the function "__compute_q_from_features"
     def __compute_utility_from_features(self, features: Dict[str, float]) -> float:
         # TODO: Complete this function
-        NotImplemented()
+        # U(s) = max over a [ Q(s,a) ]
+        max_q = float('-inf')
+        for action in self.actions: # loop on all possible actions
+            q_value = self.__compute_q_from_features(features, action) # compute Q-value for this action
+            if q_value > max_q:
+                max_q = q_value
+        return max_q # max Q-value is the utility of the state
 
     def compute_q(self, env: Environment[S, A], state: S, action: A) -> float:
         features = self.feature_extractor.extract_features(env, state)
@@ -257,7 +267,26 @@ class ApproximateQLearningAgent(RLAgent[S, A]):
     def update(self, env: Environment[S, A], state: S, action: A, reward: float, next_state: S, done: bool):
         # TODO: Complete this function to update weights using the Q-Learning update rule
         # If done is True, then next_state is a terminal state in which case, we consider the Q-value of next_state to be 0
-        NotImplemented()
+        # Q = Q + alpha * (reward + gamma * max_a' Q(s', a') - Q)
+        features = self.feature_extractor.extract_features(env, state) # extract features for current state
+        current_q = self.__compute_q_from_features(features, action) # Q(s,a)
+        if done: # terminal state
+            target = reward
+        else:
+            next_features = self.feature_extractor.extract_features(
+                env, next_state) # features for next state
+            max_next_q = float('-inf')
+            for next_action in self.actions: # loop on all possible next actions 
+                next_q = self.__compute_q_from_features(
+                    next_features, next_action) # Q(s',a')
+                if next_q > max_next_q:
+                    max_next_q = next_q # max_a' Q(s',a')
+            target = reward + self.discount_factor * max_next_q # update rule
+        for feature, value in features.items():
+            # update weight for each feature
+            # weight(a,f) = weight(a,f) + alpha * (target - Q(s,a)) * feature(f)
+            self.weights[action][feature] += self.learning_rate * (target - current_q) * value  
+        
 
     # Save the weights to a json file
     def save(self, env: Environment[S, A], file_path: str):
