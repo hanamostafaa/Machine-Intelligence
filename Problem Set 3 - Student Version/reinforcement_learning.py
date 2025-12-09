@@ -89,7 +89,12 @@ class SARSALearningAgent(RLAgent[S, A]):
     def update(self, env: Environment[S, A], state: S, action: A, reward: float, next_state: S, next_action: Optional[A]):
         # TODO: Complete this function to update Q-table using the SARSA update rule
         # If next_action is None, then next_state is a terminal state in which case, we consider the Q-value of next_state to be 0
-        NotImplemented()
+        # Q(s,a) = Q(s,a) + alpha * [ r + gamma * Q(s',a') - Q(s,a) ]
+        current_q = self.Q[state][action] # get stored Q(s,a)
+        next_q = 0 if next_action is None else self.Q[next_state][next_action]
+        td_target = reward + self.discount_factor * next_q # r + gamma * Q(s',a')
+        td_delta = td_target - current_q # temporal difference
+        self.Q[state][action] = current_q + self.learning_rate * td_delta # update Q-value
 
     # Save the Q-table to a json file
     def save(self, env: Environment[S, A], file_path: str):
