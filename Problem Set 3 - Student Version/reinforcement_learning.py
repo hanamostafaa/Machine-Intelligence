@@ -275,12 +275,7 @@ class ApproximateQLearningAgent(RLAgent[S, A]):
         else:
             next_features = self.feature_extractor.extract_features(
                 env, next_state) # features for next state
-            max_next_q = float('-inf')
-            for next_action in self.actions: # loop on all possible next actions 
-                next_q = self.__compute_q_from_features(
-                    next_features, next_action) # Q(s',a')
-                if next_q > max_next_q:
-                    max_next_q = next_q # max_a' Q(s',a')
+            max_next_q = self.__compute_utility_from_features(next_features) # max_a' Q(s',a')
             target = reward + self.discount_factor * max_next_q # update rule
         for feature, value in features.items():
             # update weight for each feature
